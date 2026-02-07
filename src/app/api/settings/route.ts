@@ -7,9 +7,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const settings = await getSettings();
-    return NextResponse.json({ portalEnabled: settings.portal_enabled });
+    return NextResponse.json({
+      portalEnabled: settings.portal_enabled,
+      causaNombre: settings.causa_nombre || '',
+      causaDescripcion: settings.causa_descripcion || '',
+    });
   } catch (error) {
-    return NextResponse.json({ portalEnabled: true });
+    return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '' });
   }
 }
 
@@ -26,18 +30,32 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { portalEnabled } = body;
+    const updates: Record<string, any> = {};
 
-    if (typeof portalEnabled !== 'boolean') {
+    if (typeof body.portalEnabled === 'boolean') {
+      updates.portal_enabled = body.portalEnabled;
+    }
+    if (typeof body.causaNombre === 'string') {
+      updates.causa_nombre = body.causaNombre;
+    }
+    if (typeof body.causaDescripcion === 'string') {
+      updates.causa_descripcion = body.causaDescripcion;
+    }
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid portalEnabled value' },
+        { success: false, error: 'No valid fields to update' },
         { status: 400 }
       );
     }
 
-    const updated = await updateSettings(portalEnabled);
+    const updated = await updateSettings(updates);
 
-    return NextResponse.json({ portalEnabled: updated.portal_enabled });
+    return NextResponse.json({
+      portalEnabled: updated.portal_enabled,
+      causaNombre: updated.causa_nombre || '',
+      causaDescripcion: updated.causa_descripcion || '',
+    });
   } catch (error) {
     console.error('Error updating settings:', error);
     return NextResponse.json(

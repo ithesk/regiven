@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 
 function ThankYouContent() {
   const searchParams = useSearchParams();
@@ -9,6 +9,19 @@ function ThankYouContent() {
 
   const amount = searchParams.get('amount');
   const dateString = searchParams.get('date');
+
+  const [causaNombre, setCausaNombre] = useState('');
+  const [causaDescripcion, setCausaDescripcion] = useState('');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        setCausaNombre(data.causaNombre || '');
+        setCausaDescripcion(data.causaDescripcion || '');
+      })
+      .catch(() => {});
+  }, []);
 
   const formatCurrency = (value: string) => {
     const num = parseFloat(value);
@@ -36,65 +49,70 @@ function ThankYouContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-5 py-8">
         <div className="w-full max-w-md">
-          {/* Checkmark Icon */}
+          {/* Checkmark */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center">
-              <svg
-                className="w-12 h-12 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M5 13l4 4L19 7"
-                />
+            <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
 
-          {/* Title */}
-          <h1 className="text-center text-2xl font-bold text-black mb-2">
+          <h1 className="text-center text-2xl font-bold text-gray-900 mb-1">
             ¡Gracias por tu fe!
           </h1>
-
-          {/* Subtitle */}
-          <p className="text-center text-gray-400 mb-8">
+          <p className="text-center text-gray-400 text-sm mb-8">
             Tu ofrenda ha sido recibida con gratitud
           </p>
 
-          {/* Bible Verse Card */}
-          <div className="bg-gray-50 rounded-xl p-6 mb-8">
-            <p className="text-gray-700 text-sm leading-relaxed mb-3">
-              "Cada uno dé como propuso en su corazón: no con tristeza, ni por
-              necesidad, porque Dios ama al dador alegre."
+          {/* Verse card */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+            <p className="text-gray-600 text-sm leading-relaxed mb-3 italic">
+              &ldquo;Cada uno dé como propuso en su corazón: no con tristeza, ni por
+              necesidad, porque Dios ama al dador alegre.&rdquo;
             </p>
-            <p className="text-gray-500 text-sm font-semibold">
+            <p className="text-gray-400 text-xs font-semibold tracking-[0.15em] uppercase">
               2 Corintios 9:7
             </p>
           </div>
 
-          {/* Donation Details */}
+          {/* Causa card */}
+          {causaNombre && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+              <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-2">
+                Causa
+              </p>
+              <p className="text-lg font-bold text-gray-900 mb-1">{causaNombre}</p>
+              {causaDescripcion && (
+                <p className="text-sm text-gray-500 leading-relaxed">{causaDescripcion}</p>
+              )}
+            </div>
+          )}
+
+          {/* Donation details card */}
           {amount && dateString && (
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Monto</p>
-                  <p className="text-2xl font-bold text-black">
-                    RD${formatCurrency(amount)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500 mb-1">Fecha</p>
-                  <p className="text-sm font-semibold text-black">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase">
+                  Has ofrendado
+                </p>
+              </div>
+              <p className="text-3xl font-bold text-gray-900 mb-4">
+                RD${formatCurrency(amount)}
+              </p>
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-2">
+                  Fecha
+                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-semibold text-gray-900">
                     {formatDate(dateString)}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <span className="text-gray-300">·</span>
+                  <p className="text-sm text-gray-500">
                     {formatTime(dateString)}
                   </p>
                 </div>
@@ -102,12 +120,12 @@ function ThankYouContent() {
             </div>
           )}
 
-          {/* Home Button */}
+          {/* Back button */}
           <button
             onClick={() => router.push('/')}
-            className="w-full bg-black text-white py-4 rounded-xl text-lg font-semibold hover:bg-gray-900"
+            className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black flex items-center justify-center gap-3 shadow-xl"
           >
-            Inicio
+            Volver al Inicio
           </button>
         </div>
       </div>
@@ -119,8 +137,8 @@ export default function ThankYouPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
         </div>
       }
     >

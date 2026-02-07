@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Donation {
@@ -28,6 +28,12 @@ export default function AdminDashboard() {
     todayAmount: 0,
   });
   const [portalEnabled, setPortalEnabled] = useState(true);
+  const [causaNombre, setCausaNombre] = useState('');
+  const [causaDescripcion, setCausaDescripcion] = useState('');
+  const [isSavingCausa, setIsSavingCausa] = useState(false);
+  const [causaSaved, setCausaSaved] = useState(false);
+  const [causaOpen, setCausaOpen] = useState(false);
+  const isEditingCausa = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isTogglingPortal, setIsTogglingPortal] = useState(false);
 
@@ -60,6 +66,10 @@ export default function AdminDashboard() {
 
       if (settingsData) {
         setPortalEnabled(settingsData.portalEnabled);
+        if (!isEditingCausa.current) {
+          setCausaNombre(settingsData.causaNombre || '');
+          setCausaDescripcion(settingsData.causaDescripcion || '');
+        }
       }
 
       setIsLoading(false);
@@ -91,6 +101,26 @@ export default function AdminDashboard() {
       console.error('Error toggling portal:', error);
     } finally {
       setIsTogglingPortal(false);
+    }
+  };
+
+  const handleSaveCausa = async () => {
+    setIsSavingCausa(true);
+    setCausaSaved(false);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ causaNombre, causaDescripcion }),
+      });
+      if (response.ok) {
+        setCausaSaved(true);
+        isEditingCausa.current = false;
+      }
+    } catch (error) {
+      console.error('Error saving causa:', error);
+    } finally {
+      setIsSavingCausa(false);
     }
   };
 
@@ -267,6 +297,63 @@ export default function AdminDashboard() {
               />
             </button>
           </div>
+        </div>
+
+        {/* Causa Editor (collapsible) */}
+        <div className="bg-white rounded-xl shadow-sm mb-5">
+          <button
+            onClick={() => setCausaOpen(!causaOpen)}
+            className="w-full flex items-center justify-between p-5"
+          >
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-semibold text-black">Causa / Ofrenda</h2>
+              {causaNombre && !causaOpen && (
+                <span className="text-xs text-gray-400 truncate max-w-[200px]">{causaNombre}</span>
+              )}
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${causaOpen ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {causaOpen && (
+            <div className="px-5 pb-5 space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Nombre de la causa</label>
+                <input
+                  type="text"
+                  value={causaNombre}
+                  onChange={(e) => { setCausaNombre(e.target.value); setCausaSaved(false); isEditingCausa.current = true; }}
+                  placeholder="Ej: Construcción del templo"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Descripción</label>
+                <textarea
+                  value={causaDescripcion}
+                  onChange={(e) => { setCausaDescripcion(e.target.value); setCausaSaved(false); isEditingCausa.current = true; }}
+                  placeholder="Ej: Tu ofrenda será destinada a la construcción del nuevo templo"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSaveCausa}
+                  disabled={isSavingCausa}
+                  className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {isSavingCausa ? 'Guardando...' : 'Guardar'}
+                </button>
+                {causaSaved && (
+                  <span className="text-sm text-green-600 font-medium">Guardado</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Global Stats */}

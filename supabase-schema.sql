@@ -10,11 +10,22 @@ create table donations (
 -- Tabla de configuración
 create table settings (
   id int primary key default 1 check (id = 1),
-  portal_enabled boolean default true not null
+  portal_enabled boolean default true not null,
+  causa_nombre text default '' not null,
+  causa_descripcion text default '' not null
 );
 
 -- Insertar configuración por defecto
-insert into settings (id, portal_enabled) values (1, true);
+insert into settings (id, portal_enabled, causa_nombre, causa_descripcion) values (1, true, '', '');
+
+-- =============================================
+-- MIGRACIÓN: Agregar campos de causa
+-- Ejecuta esto si ya tienes la tabla settings creada:
+--
+-- alter table settings add column causa_nombre text default '' not null;
+-- alter table settings add column causa_descripcion text default '' not null;
+--
+-- =============================================
 
 -- Habilitar acceso público (RLS desactivado para MVP)
 alter table donations enable row level security;

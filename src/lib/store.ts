@@ -8,6 +8,8 @@ export interface Donation {
 
 export interface Settings {
   portal_enabled: boolean;
+  causa_nombre: string;
+  causa_descripcion: string;
 }
 
 // --- Donations ---
@@ -67,18 +69,18 @@ export async function getTodayDonations(): Promise<{ count: number; total: numbe
 export async function getSettings(): Promise<Settings> {
   const { data, error } = await supabase
     .from('settings')
-    .select('portal_enabled')
+    .select('portal_enabled, causa_nombre, causa_descripcion')
     .eq('id', 1)
     .single();
 
-  if (error) return { portal_enabled: true }; // default
+  if (error) return { portal_enabled: true, causa_nombre: '', causa_descripcion: '' };
   return data;
 }
 
-export async function updateSettings(portal_enabled: boolean): Promise<Settings> {
+export async function updateSettings(fields: Partial<Omit<Settings, 'id'>>): Promise<Settings> {
   const { data, error } = await supabase
     .from('settings')
-    .update({ portal_enabled })
+    .update(fields)
     .eq('id', 1)
     .select()
     .single();

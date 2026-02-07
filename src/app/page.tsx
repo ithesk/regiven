@@ -14,7 +14,6 @@ export default function DonationPage() {
   const [portalEnabled, setPortalEnabled] = useState(true);
   const [countdown, setCountdown] = useState(0);
 
-  // Splash animation state
   const [showSplash, setShowSplash] = useState(false);
   const [splashFading, setSplashFading] = useState(false);
   const [donationResult, setDonationResult] = useState<{ amount: number; createdAt: string } | null>(null);
@@ -31,9 +30,7 @@ export default function DonationPage() {
           setCountdown(3);
         }
       })
-      .catch(() => {
-        setIsCheckingPortal(false);
-      });
+      .catch(() => setIsCheckingPortal(false));
   }, [portalEnabled]);
 
   useEffect(() => {
@@ -48,10 +45,8 @@ export default function DonationPage() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  // When splash is shown, play video and navigate after it ends
   useEffect(() => {
     if (!showSplash || !donationResult) return;
-
     const navigateToGracias = () => {
       setSplashFading(true);
       setTimeout(() => {
@@ -60,21 +55,15 @@ export default function DonationPage() {
         );
       }, 600);
     };
-
-    // Fallback: navigate after 5s even if video doesn't end
     const fallback = setTimeout(navigateToGracias, 5000);
-
     const video = videoRef.current;
     if (video) {
-      video.play().catch(() => {
-        // If video can't autoplay, still navigate after delay
-      });
+      video.play().catch(() => {});
       video.onended = () => {
         clearTimeout(fallback);
         navigateToGracias();
       };
     }
-
     return () => clearTimeout(fallback);
   }, [showSplash, donationResult, router]);
 
@@ -91,42 +80,31 @@ export default function DonationPage() {
     setSelectedAmount(null);
   };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString('es-DO');
-  };
+  const formatCurrency = (amount: number) => amount.toLocaleString('es-DO');
 
   const handleDonate = async () => {
     if (!portalEnabled) return;
-
     const amount = selectedAmount || (customAmount ? parseInt(customAmount) : 0);
-
     if (amount <= 0) {
       alert('Por favor selecciona o ingresa un monto válido');
       return;
     }
-
     setIsLoading(true);
-
     try {
       const response = await fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount }),
       });
-
       const data = await response.json();
-
       if (response.ok && data.success) {
-        setDonationResult({
-          amount: data.donation.amount,
-          createdAt: data.donation.createdAt,
-        });
+        setDonationResult({ amount: data.donation.amount, createdAt: data.donation.createdAt });
         setShowSplash(true);
       } else {
         alert('Error al procesar la donación. Intenta nuevamente.');
         setIsLoading(false);
       }
-    } catch (error) {
+    } catch {
       alert('Error al procesar la donación. Intenta nuevamente.');
       setIsLoading(false);
     }
@@ -134,75 +112,52 @@ export default function DonationPage() {
 
   if (isCheckingPortal) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
-      {/* Splash animation overlay */}
+    <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
+      {/* Splash */}
       {showSplash && (
-        <div
-          className={`fixed inset-0 z-50 bg-black flex flex-col items-center justify-center transition-opacity duration-600 ${
-            splashFading ? 'opacity-0' : 'opacity-100'
-          }`}
-        >
-          {/* Video background */}
-          <video
-            ref={videoRef}
-            src="/animacion1.mp4"
-            muted
-            playsInline
-            autoPlay
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-
-          {/* Logo on top of video */}
+        <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
+          <video ref={videoRef} src="/animacion1.mp4" muted playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
           <div className="relative z-10 animate-splash-text">
-            <img
-              src="/logo.png"
-              alt="Iglesia Revoluciona"
-              className="w-28 h-28 drop-shadow-2xl"
-            />
+            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl" />
           </div>
         </div>
       )}
 
-      {/* Main form */}
-      <div
-        className={`flex-1 flex items-center justify-center px-6 py-8 transition-all duration-700 ${
-          !portalEnabled ? 'blur-md pointer-events-none select-none' : ''
-        }`}
-      >
+      {/* Form */}
+      <div className={`flex-1 flex items-center justify-center px-5 py-8 transition-all duration-700 ${!portalEnabled ? 'blur-md pointer-events-none select-none' : ''}`}>
         <div className="w-full max-w-md">
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center">
-              <span className="text-white text-3xl font-bold">re</span>
-            </div>
+          <div className="flex justify-center mb-5">
+            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-32 h-32" />
           </div>
 
-          <h1 className="text-center text-2xl font-bold text-black mb-2">
+          <h1 className="text-center text-2xl font-bold text-gray-900 mb-1">
             Iglesia Revoluciona
           </h1>
+          <p className="text-center text-gray-400 text-sm mb-8">Tu ofrenda de fe</p>
 
-          <p className="text-center text-gray-400 mb-8">Tu ofrenda de fe</p>
+          {/* Amount label */}
+          <p className="text-xs font-semibold text-gray-400 tracking-[0.2em] uppercase mb-3">
+            Monto
+          </p>
 
-          <h2 className="text-lg font-bold text-black mb-4">
-            Selecciona tu aporte
-          </h2>
-
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* 3-column grid */}
+          <div className="grid grid-cols-3 gap-2.5 mb-7">
             {PRESET_AMOUNTS.map((amount) => (
               <button
                 key={amount}
                 onClick={() => handlePresetClick(amount)}
-                className={`py-4 px-6 rounded-xl text-lg font-semibold transition-all ${
+                className={`py-3.5 rounded-2xl text-base font-bold transition-all ${
                   selectedAmount === amount
-                    ? 'bg-black text-white'
-                    : 'bg-gray-100 text-black hover:bg-gray-200'
+                    ? 'bg-gray-900 text-white shadow-lg'
+                    : 'bg-white text-gray-800 border border-gray-200 shadow-sm hover:border-gray-300'
                 }`}
               >
                 RD${formatCurrency(amount)}
@@ -210,33 +165,42 @@ export default function DonationPage() {
             ))}
           </div>
 
-          <div className="mb-8">
-            <label className="block text-sm text-gray-600 mb-2">
-              O ingresa otro monto
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-medium">
-                RD$
-              </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={customAmount}
-                onChange={handleCustomAmountChange}
-                placeholder="0.00"
-                disabled={!portalEnabled}
-                className="w-full py-4 pl-16 pr-4 bg-gray-100 rounded-xl text-lg font-semibold text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
+          {/* Custom amount */}
+          <p className="text-xs font-semibold text-gray-400 tracking-[0.2em] uppercase mb-3">
+            O ingresa un monto personalizado
+          </p>
+          <div className="relative mb-8">
+            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xl font-semibold">
+              RD$
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={customAmount}
+              onChange={handleCustomAmountChange}
+              placeholder="0.00"
+              disabled={!portalEnabled}
+              className="w-full py-4 pl-16 pr-5 bg-white border border-gray-200 rounded-2xl text-xl font-bold text-gray-900 placeholder-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            />
           </div>
 
+          {/* Donate button */}
           <button
             onClick={handleDonate}
             disabled={isLoading || !portalEnabled}
-            className="w-full bg-black text-white py-4 rounded-xl text-lg font-semibold hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+            className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl"
           >
-            {isLoading ? 'Procesando...' : 'Donar'}
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <>
+                Donar
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -244,29 +208,23 @@ export default function DonationPage() {
       {/* Disabled overlay */}
       {!portalEnabled && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mx-6 max-w-sm w-full text-center animate-fade-in">
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mx-6 max-w-sm w-full text-center animate-fade-in">
             {countdown > 0 ? (
               <>
-                <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-white text-4xl font-bold">{countdown}</span>
                 </div>
-                <p className="text-lg font-semibold text-black">
-                  Deshabilitando portal...
-                </p>
+                <p className="text-lg font-semibold text-gray-900">Deshabilitando portal...</p>
               </>
             ) : (
               <>
-                <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-black mb-2">
-                  Portal no disponible
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  El portal de ofrendas se encuentra temporalmente deshabilitado. Intenta más tarde.
-                </p>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Portal no disponible</h2>
+                <p className="text-gray-500 text-sm">El portal de ofrendas se encuentra temporalmente deshabilitado. Intenta más tarde.</p>
               </>
             )}
           </div>
