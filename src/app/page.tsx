@@ -17,7 +17,7 @@ export default function DonationPage() {
   const [showSplash, setShowSplash] = useState(false);
   const [splashFading, setSplashFading] = useState(false);
   const [donationResult, setDonationResult] = useState<{ amount: number; createdAt: string } | null>(null);
-  const [videoReady, setVideoReady] = useState(false);
+  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const checkPortal = useCallback(() => {
@@ -36,17 +36,16 @@ export default function DonationPage() {
 
   useEffect(() => {
     checkPortal();
-    const interval = setInterval(checkPortal, 3000);
+    const interval = setInterval(checkPortal, 15000);
     return () => clearInterval(interval);
   }, [checkPortal]);
 
-  // Preload video in background
+  // Preload video as blob (single download, reused)
   useEffect(() => {
-    const video = document.createElement('video');
-    video.preload = 'auto';
-    video.src = '/animacion1.mp4';
-    video.oncanplaythrough = () => setVideoReady(true);
-    video.load();
+    fetch('/animacion1.mp4')
+      .then(res => res.blob())
+      .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -58,13 +57,13 @@ export default function DonationPage() {
   const videoPlaying = useRef(false);
 
   useEffect(() => {
-    if (!showSplash || !donationResult || !videoReady || videoPlaying.current) return;
+    if (!showSplash || !donationResult || !videoBlobUrl || videoPlaying.current) return;
     videoPlaying.current = true;
 
     const video = videoRef.current;
     if (!video) return;
 
-    video.currentTime = 0;
+    video.src = videoBlobUrl;
     video.play().catch(() => {});
     video.onended = () => {
       setSplashFading(true);
@@ -74,7 +73,7 @@ export default function DonationPage() {
         );
       }, 600);
     };
-  }, [showSplash, donationResult, videoReady, router]);
+  }, [showSplash, donationResult, videoBlobUrl, router]);
 
   const handlePresetClick = (amount: number) => {
     if (!portalEnabled) return;
@@ -133,10 +132,10 @@ export default function DonationPage() {
       {/* Splash */}
       {showSplash && (
         <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
-          <video ref={videoRef} src="/animacion1.mp4" muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+          <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
           <div className="relative z-10 flex flex-col items-center gap-4">
             <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-splash-text" />
-            {!videoReady && <div className="w-24 h-1 rounded-full animate-shimmer" />}
+            {!videoBlobUrl && <div className="w-24 h-1 rounded-full animate-shimmer" />}
           </div>
         </div>
       )}
