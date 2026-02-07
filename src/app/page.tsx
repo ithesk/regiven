@@ -65,17 +65,20 @@ export default function DonationPage() {
         );
       }, 600);
     };
-    const fallback = setTimeout(navigateToGracias, 5000);
-    const video = videoRef.current;
-    if (video) {
-      video.play().catch(() => {});
-      video.onended = () => {
-        clearTimeout(fallback);
-        navigateToGracias();
-      };
+
+    const playVideo = () => {
+      const video = videoRef.current;
+      if (video) {
+        video.play().catch(() => {});
+        video.onended = () => navigateToGracias();
+      }
+    };
+
+    if (videoReady) {
+      playVideo();
     }
-    return () => clearTimeout(fallback);
-  }, [showSplash, donationResult, router]);
+    // If video not ready yet, the videoReady effect below will trigger playback
+  }, [showSplash, donationResult, router, videoReady]);
 
   const handlePresetClick = (amount: number) => {
     if (!portalEnabled) return;
@@ -134,12 +137,13 @@ export default function DonationPage() {
       {/* Splash */}
       {showSplash && (
         <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
-          {videoReady && (
-            <video ref={videoRef} src="/animacion1.mp4" muted playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
+          <video ref={videoRef} src="/animacion1.mp4" muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+          {!videoReady && (
+            <div className="relative z-10 flex flex-col items-center gap-4">
+              <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-logo-pulse" />
+              <div className="w-24 h-1 rounded-full animate-shimmer" />
+            </div>
           )}
-          <div className="relative z-10 animate-splash-text">
-            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-logo-pulse" />
-          </div>
         </div>
       )}
 
