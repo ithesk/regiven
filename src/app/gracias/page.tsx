@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
 
 function ThankYouContent() {
   const searchParams = useSearchParams();
@@ -138,7 +139,7 @@ export default function ThankYouPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-5">
-          <img src="/logo.png" alt="Iglesia Revoluciona" className="w-24 h-24 animate-logo-pulse" />
+          <Image src="/logo.png" alt="Iglesia Revoluciona" width={96} height={96} className="animate-logo-pulse" />
           <div className="w-32 h-1.5 rounded-full animate-shimmer" />
         </div>
       }

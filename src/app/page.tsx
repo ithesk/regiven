@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const PRESET_AMOUNTS = [500, 1000, 2500, 5000, 10000, 25000];
 
@@ -19,12 +20,17 @@ export default function DonationPage() {
   const [donationResult, setDonationResult] = useState<{ amount: number; createdAt: string } | null>(null);
   const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoPlaying = useRef(false);
+
+  // Check portal status
+  const portalEnabledRef = useRef(portalEnabled);
+  portalEnabledRef.current = portalEnabled;
 
   const checkPortal = useCallback(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
-        const wasEnabled = portalEnabled;
+        const wasEnabled = portalEnabledRef.current;
         setPortalEnabled(data.portalEnabled);
         setIsCheckingPortal(false);
         if (wasEnabled && !data.portalEnabled) {
@@ -32,34 +38,22 @@ export default function DonationPage() {
         }
       })
       .catch(() => setIsCheckingPortal(false));
-  }, [portalEnabled]);
+  }, []);
 
   useEffect(() => {
     checkPortal();
-    const interval = setInterval(checkPortal, 15000);
+    const interval = setInterval(checkPortal, 30000);
     return () => clearInterval(interval);
   }, [checkPortal]);
 
-  // Preload video as blob AFTER page is visible
-  useEffect(() => {
-    if (isCheckingPortal) return;
-    const timer = setTimeout(() => {
-      fetch('/animacion1.mp4')
-        .then(res => res.blob())
-        .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
-        .catch(() => {});
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [isCheckingPortal]);
-
+  // Countdown
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const videoPlaying = useRef(false);
-
+  // Play video when splash is shown and video is ready
   useEffect(() => {
     if (!showSplash || !donationResult || !videoBlobUrl || videoPlaying.current) return;
     videoPlaying.current = true;
@@ -94,6 +88,15 @@ export default function DonationPage() {
 
   const formatCurrency = (amount: number) => amount.toLocaleString('es-DO');
 
+  // Download video as blob (single download)
+  const downloadVideo = () => {
+    if (videoBlobUrl) return; // already downloaded
+    fetch('/animacion1.mp4')
+      .then(res => res.blob())
+      .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
+      .catch(() => {});
+  };
+
   const handleDonate = async () => {
     if (!portalEnabled) return;
     const amount = selectedAmount || (customAmount ? parseInt(customAmount) : 0);
@@ -102,6 +105,10 @@ export default function DonationPage() {
       return;
     }
     setIsLoading(true);
+
+    // Start video download in parallel with donation POST
+    downloadVideo();
+
     try {
       const response = await fetch('/api/donations', {
         method: 'POST',
@@ -125,7 +132,7 @@ export default function DonationPage() {
   if (isCheckingPortal) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-5">
-        <img src="/logo.png" alt="Iglesia Revoluciona" className="w-24 h-24 animate-logo-pulse" />
+        <Image src="/logo.png" alt="Iglesia Revoluciona" width={96} height={96} className="animate-logo-pulse" priority />
         <div className="w-32 h-1.5 rounded-full animate-shimmer" />
       </div>
     );
@@ -138,7 +145,7 @@ export default function DonationPage() {
         <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
           <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
           <div className="relative z-10 flex flex-col items-center gap-4">
-            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-splash-text" />
+            <Image src="/logo.png" alt="Iglesia Revoluciona" width={112} height={112} className="drop-shadow-2xl animate-splash-text" />
             {!videoBlobUrl && <div className="w-24 h-1 rounded-full animate-shimmer" />}
           </div>
         </div>
@@ -149,7 +156,7 @@ export default function DonationPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-5">
-            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-32 h-32" />
+            <Image src="/logo.png" alt="Iglesia Revoluciona" width={128} height={128} priority />
           </div>
 
           <h1 className="text-center text-2xl font-bold text-gray-900 mb-1">
@@ -168,7 +175,7 @@ export default function DonationPage() {
               <button
                 key={amount}
                 onClick={() => handlePresetClick(amount)}
-                className={`py-3.5 rounded-2xl text-base font-bold transition-all ${
+                className={`py-3.5 rounded-2xl text-base font-bold ${
                   selectedAmount === amount
                     ? 'bg-gray-900 text-white shadow-lg'
                     : 'bg-white text-gray-800 border border-gray-200 shadow-sm hover:border-gray-300'
