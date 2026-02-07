@@ -55,9 +55,18 @@ export default function DonationPage() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  const videoPlaying = useRef(false);
+
   useEffect(() => {
-    if (!showSplash || !donationResult) return;
-    const navigateToGracias = () => {
+    if (!showSplash || !donationResult || !videoReady || videoPlaying.current) return;
+    videoPlaying.current = true;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    video.play().catch(() => {});
+    video.onended = () => {
       setSplashFading(true);
       setTimeout(() => {
         router.push(
@@ -65,20 +74,7 @@ export default function DonationPage() {
         );
       }, 600);
     };
-
-    const playVideo = () => {
-      const video = videoRef.current;
-      if (video) {
-        video.play().catch(() => {});
-        video.onended = () => navigateToGracias();
-      }
-    };
-
-    if (videoReady) {
-      playVideo();
-    }
-    // If video not ready yet, the videoReady effect below will trigger playback
-  }, [showSplash, donationResult, router, videoReady]);
+  }, [showSplash, donationResult, videoReady, router]);
 
   const handlePresetClick = (amount: number) => {
     if (!portalEnabled) return;
