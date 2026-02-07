@@ -134,12 +134,10 @@ export default function DonationPage() {
       {showSplash && (
         <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
           <video ref={videoRef} src="/animacion1.mp4" muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-          {!videoReady && (
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-logo-pulse" />
-              <div className="w-24 h-1 rounded-full animate-shimmer" />
-            </div>
-          )}
+          <div className="relative z-10 flex flex-col items-center gap-4">
+            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-splash-text" />
+            {!videoReady && <div className="w-24 h-1 rounded-full animate-shimmer" />}
+          </div>
         </div>
       )}
 
