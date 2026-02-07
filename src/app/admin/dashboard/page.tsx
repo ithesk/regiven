@@ -239,8 +239,11 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center animate-logo-pulse">
+          <span className="text-white text-lg font-bold">re</span>
+        </div>
+        <div className="w-28 h-1.5 rounded-full animate-shimmer" />
       </div>
     );
   }

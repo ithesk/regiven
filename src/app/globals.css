@@ -60,6 +60,25 @@ input[type="password"] {
   transition-duration: 600ms;
 }
 
+/* Loading screen pulse */
+@keyframes logoPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.95); }
+}
+.animate-logo-pulse {
+  animation: logoPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 768px) {
   input,
