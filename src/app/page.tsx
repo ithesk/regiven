@@ -40,13 +40,17 @@ export default function DonationPage() {
     return () => clearInterval(interval);
   }, [checkPortal]);
 
-  // Preload video as blob (single download, reused)
+  // Preload video as blob AFTER page is visible
   useEffect(() => {
-    fetch('/animacion1.mp4')
-      .then(res => res.blob())
-      .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
-      .catch(() => {});
-  }, []);
+    if (isCheckingPortal) return;
+    const timer = setTimeout(() => {
+      fetch('/animacion1.mp4')
+        .then(res => res.blob())
+        .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
+        .catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [isCheckingPortal]);
 
   useEffect(() => {
     if (countdown <= 0) return;
