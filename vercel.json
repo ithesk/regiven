@@ -1,4 +1,7 @@
 {
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "npm install",
   "headers": [
     {
       "source": "/manifest.json",
@@ -6,23 +9,6 @@
         {
           "key": "Content-Type",
           "value": "application/manifest+json"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
         }
       ]
     }
