@@ -17,6 +17,7 @@ export default function DonationPage() {
   const [showSplash, setShowSplash] = useState(false);
   const [splashFading, setSplashFading] = useState(false);
   const [donationResult, setDonationResult] = useState<{ amount: number; createdAt: string } | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const checkPortal = useCallback(() => {
@@ -38,6 +39,15 @@ export default function DonationPage() {
     const interval = setInterval(checkPortal, 3000);
     return () => clearInterval(interval);
   }, [checkPortal]);
+
+  // Preload video in background
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.src = '/animacion1.mp4';
+    video.oncanplaythrough = () => setVideoReady(true);
+    video.load();
+  }, []);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -124,9 +134,11 @@ export default function DonationPage() {
       {/* Splash */}
       {showSplash && (
         <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
-          <video ref={videoRef} src="/animacion1.mp4" muted playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
+          {videoReady && (
+            <video ref={videoRef} src="/animacion1.mp4" muted playsInline autoPlay className="absolute inset-0 w-full h-full object-cover" />
+          )}
           <div className="relative z-10 animate-splash-text">
-            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl" />
+            <img src="/logo.png" alt="Iglesia Revoluciona" className="w-28 h-28 drop-shadow-2xl animate-logo-pulse" />
           </div>
         </div>
       )}
