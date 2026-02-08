@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
       // Create session
       const sessionId = Math.random().toString(36).substring(2, 15);
-      createSession(sessionId);
+      await createSession(sessionId);
 
       // Create response with cookie
       const response = NextResponse.json({
@@ -50,7 +50,7 @@ export async function DELETE(request: NextRequest) {
     const sessionCookie = request.cookies.get('admin_session');
 
     if (sessionCookie) {
-      deleteSession(sessionCookie.value);
+      await deleteSession(sessionCookie.value);
     }
 
     const response = NextResponse.json({

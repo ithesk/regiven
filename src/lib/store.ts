@@ -89,22 +89,26 @@ export async function updateSettings(fields: Partial<Omit<Settings, 'id'>>): Pro
   return data;
 }
 
-// --- Sessions (still in-memory, fine for MVP) ---
+// --- Sessions (stored in Supabase) ---
 
-const globalStore = globalThis as any;
-if (!globalStore.__sessions) {
-  globalStore.__sessions = new Set<string>();
-}
-const sessions: Set<string> = globalStore.__sessions;
-
-export function createSession(sessionId: string): void {
-  sessions.add(sessionId);
+export async function createSession(sessionId: string): Promise<void> {
+  await supabase
+    .from('sessions')
+    .insert({ id: sessionId, created_at: new Date().toISOString() });
 }
 
-export function validateSession(sessionId: string): boolean {
-  return sessions.has(sessionId);
+export async function validateSession(sessionId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .single();
+  return !!data;
 }
 
-export function deleteSession(sessionId: string): void {
-  sessions.delete(sessionId);
+export async function deleteSession(sessionId: string): Promise<void> {
+  await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', sessionId);
 }
