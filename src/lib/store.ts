@@ -10,6 +10,7 @@ export interface Settings {
   portal_enabled: boolean;
   causa_nombre: string;
   causa_descripcion: string;
+  meta_monto: number;
 }
 
 // --- Donations ---
@@ -69,12 +70,17 @@ export async function getTodayDonations(): Promise<{ count: number; total: numbe
 export async function getSettings(): Promise<Settings> {
   const { data, error } = await supabase
     .from('settings')
-    .select('portal_enabled, causa_nombre, causa_descripcion')
+    .select('*')
     .eq('id', 1)
     .single();
 
-  if (error) return { portal_enabled: true, causa_nombre: '', causa_descripcion: '' };
-  return data;
+  if (error) return { portal_enabled: true, causa_nombre: '', causa_descripcion: '', meta_monto: 3000000 };
+  return {
+    portal_enabled: data.portal_enabled,
+    causa_nombre: data.causa_nombre ?? '',
+    causa_descripcion: data.causa_descripcion ?? '',
+    meta_monto: data.meta_monto ?? 3000000,
+  };
 }
 
 export async function updateSettings(fields: Partial<Omit<Settings, 'id'>>): Promise<Settings> {
