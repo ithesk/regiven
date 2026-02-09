@@ -1,135 +1,76 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
-const PRESET_AMOUNTS = [500, 1000, 2500, 5000, 10000, 25000];
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
 
-export default function DonationPage() {
-  const router = useRouter();
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [customAmount, setCustomAmount] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingPortal, setIsCheckingPortal] = useState(true);
+  const handleCopy = useCallback(() => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => fallbackCopy());
+    } else {
+      fallbackCopy();
+    }
+
+    function fallbackCopy() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-xs font-semibold text-gray-500 bg-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-300 active:bg-gray-400"
+    >
+      {copied ? 'Copiado!' : 'Copiar'}
+    </button>
+  );
+}
+
+export default function LandingPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [portalEnabled, setPortalEnabled] = useState(true);
-  const [countdown, setCountdown] = useState(0);
+  const [causaNombre, setCausaNombre] = useState('');
+  const [causaDescripcion, setCausaDescripcion] = useState('');
+  const [metaMonto, setMetaMonto] = useState(3000000);
+  const [totalRecaudado, setTotalRecaudado] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashFading, setSplashFading] = useState(false);
-  const [donationResult, setDonationResult] = useState<{ amount: number; createdAt: string } | null>(null);
-  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoPlaying = useRef(false);
-
-  // Check portal status
-  const portalEnabledRef = useRef(portalEnabled);
-  portalEnabledRef.current = portalEnabled;
-
-  const checkPortal = useCallback(() => {
+  useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
-        const wasEnabled = portalEnabledRef.current;
         setPortalEnabled(data.portalEnabled);
-        setIsCheckingPortal(false);
-        if (wasEnabled && !data.portalEnabled) {
-          setCountdown(3);
-        }
+        setCausaNombre(data.causaNombre || '');
+        setCausaDescripcion(data.causaDescripcion || '');
+        setMetaMonto(data.metaMonto ?? 3000000);
+        setTotalRecaudado(data.totalRecaudado ?? 0);
+        setTotalCount(data.totalCount ?? 0);
+        setIsLoading(false);
       })
-      .catch(() => setIsCheckingPortal(false));
+      .catch(() => setIsLoading(false));
   }, []);
 
-  useEffect(() => {
-    checkPortal();
-    const interval = setInterval(checkPortal, 30000);
-    return () => clearInterval(interval);
-  }, [checkPortal]);
+  const formatCurrency = (amount: number) =>
+    amount.toLocaleString('es-DO');
 
-  // Countdown
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
+  const pct = metaMonto > 0 ? Math.min(Math.round((totalRecaudado / metaMonto) * 100), 100) : 0;
 
-  // Play video when splash is shown and video is ready
-  useEffect(() => {
-    if (!showSplash || !donationResult || !videoBlobUrl || videoPlaying.current) return;
-    videoPlaying.current = true;
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.src = videoBlobUrl;
-    video.play().catch(() => {});
-    video.onended = () => {
-      setSplashFading(true);
-      setTimeout(() => {
-        router.push(
-          `/gracias?amount=${donationResult.amount}&date=${encodeURIComponent(donationResult.createdAt)}`
-        );
-      }, 600);
-    };
-  }, [showSplash, donationResult, videoBlobUrl, router]);
-
-  const handlePresetClick = (amount: number) => {
-    if (!portalEnabled) return;
-    setSelectedAmount(amount);
-    setCustomAmount('');
-  };
-
-  const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!portalEnabled) return;
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setCustomAmount(value);
-    setSelectedAmount(null);
-  };
-
-  const formatCurrency = (amount: number) => amount.toLocaleString('es-DO');
-
-  // Download video as blob (single download)
-  const downloadVideo = () => {
-    if (videoBlobUrl) return; // already downloaded
-    fetch('/animacion1.mp4')
-      .then(res => res.blob())
-      .then(blob => setVideoBlobUrl(URL.createObjectURL(blob)))
-      .catch(() => {});
-  };
-
-  const handleDonate = async () => {
-    if (!portalEnabled) return;
-    const amount = selectedAmount || (customAmount ? parseInt(customAmount) : 0);
-    if (amount <= 0) {
-      alert('Por favor selecciona o ingresa un monto válido');
-      return;
-    }
-    setIsLoading(true);
-
-    // Start video download in parallel with donation POST
-    downloadVideo();
-
-    try {
-      const response = await fetch('/api/donations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setDonationResult({ amount: data.donation.amount, createdAt: data.donation.createdAt });
-        setShowSplash(true);
-      } else {
-        alert('Error al procesar la donación. Intenta nuevamente.');
-        setIsLoading(false);
-      }
-    } catch {
-      alert('Error al procesar la donación. Intenta nuevamente.');
-      setIsLoading(false);
-    }
-  };
-
-  if (isCheckingPortal) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-5">
         <Image src="/logo.png" alt="Iglesia Revoluciona" width={96} height={96} className="animate-logo-pulse" priority />
@@ -139,115 +80,156 @@ export default function DonationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
-      {/* Splash */}
-      {showSplash && (
-        <div className={`fixed inset-0 z-50 bg-black flex items-center justify-center transition-opacity duration-600 ${splashFading ? 'opacity-0' : 'opacity-100'}`}>
-          <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-          <div className="relative z-10 flex flex-col items-center gap-4">
-            <Image src="/logo.png" alt="Iglesia Revoluciona" width={112} height={112} className="drop-shadow-2xl animate-splash-text" />
-            {!videoBlobUrl && <div className="w-24 h-1 rounded-full animate-shimmer" />}
+    <div className="min-h-screen bg-white">
+      {/* Hero image */}
+      <div className="w-full relative overflow-hidden bg-black aspect-[4/3] max-h-[400px]">
+        <Image
+          src="/imare.jpg"
+          alt={causaNombre || 'Iglesia Revoluciona'}
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
+
+      {/* Content */}
+      <div className="px-5 py-6 max-w-lg mx-auto">
+        {/* Title */}
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          {causaNombre || 'Iglesia Revoluciona'}
+        </h1>
+
+        {/* Organizer */}
+        <div className="flex items-center gap-3 mb-6">
+          <Image
+            src="/logo.png"
+            alt="Iglesia Revoluciona"
+            width={36}
+            height={36}
+            className="rounded-full"
+          />
+          <div>
+            <p className="text-xs text-gray-400">Organizado por</p>
+            <p className="text-sm font-semibold text-gray-900">Iglesia Revoluciona</p>
           </div>
         </div>
-      )}
 
-      {/* Form */}
-      <div className={`flex-1 flex items-center justify-center px-5 py-8 transition-all duration-700 ${!portalEnabled ? 'blur-md pointer-events-none select-none' : ''}`}>
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex justify-center mb-5">
-            <Image src="/logo.png" alt="Iglesia Revoluciona" width={128} height={128} priority />
-          </div>
-
-          <h1 className="text-center text-2xl font-bold text-gray-900 mb-1">
-            Iglesia Revoluciona
-          </h1>
-          <p className="text-center text-gray-400 text-sm mb-8">Tu ofrenda de fe</p>
-
-          {/* Amount label */}
-          <p className="text-xs font-semibold text-gray-400 tracking-[0.2em] uppercase mb-3">
-            Monto
-          </p>
-
-          {/* 3-column grid */}
-          <div className="grid grid-cols-3 gap-2.5 mb-7">
-            {PRESET_AMOUNTS.map((amount) => (
-              <button
-                key={amount}
-                onClick={() => handlePresetClick(amount)}
-                className={`py-3.5 rounded-2xl text-base font-bold ${
-                  selectedAmount === amount
-                    ? 'bg-gray-900 text-white shadow-lg'
-                    : 'bg-white text-gray-800 border border-gray-200 shadow-sm hover:border-gray-300'
-                }`}
-              >
-                RD${formatCurrency(amount)}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom amount */}
-          <p className="text-xs font-semibold text-gray-400 tracking-[0.2em] uppercase mb-3">
-            O ingresa un monto personalizado
-          </p>
-          <div className="relative mb-8">
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 text-xl font-semibold">
-              RD$
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={customAmount}
-              onChange={handleCustomAmountChange}
-              placeholder="0.00"
-              disabled={!portalEnabled}
-              className="w-full py-4 pl-16 pr-5 bg-white border border-gray-200 rounded-2xl text-xl font-bold text-gray-900 placeholder-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+        {/* Progress bar */}
+        <div className="mb-2">
+          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gray-900 rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${pct}%` }}
             />
           </div>
+        </div>
 
-          {/* Donate button */}
-          <button
-            onClick={handleDonate}
-            disabled={isLoading || !portalEnabled}
-            className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <>
-                Donar
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </>
-            )}
-          </button>
+        {/* Raised / Meta */}
+        <div className="flex items-baseline justify-between mb-6">
+          <p className="text-base">
+            <span className="font-bold text-gray-900">RD${formatCurrency(totalRecaudado)}</span>{' '}
+            <span className="text-gray-400 text-sm">recaudado de RD${formatCurrency(metaMonto)}</span>
+          </p>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-gray-50 rounded-2xl py-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{totalCount}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Donantes</p>
+          </div>
+          <div className="bg-gray-50 rounded-2xl py-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{pct}%</p>
+            <p className="text-xs text-gray-400 mt-0.5">Completado</p>
+          </div>
+          <div className="bg-gray-50 rounded-2xl py-4 text-center">
+            <p className="text-xl font-bold text-gray-900">Meta</p>
+            <p className="text-xs text-gray-400 mt-0.5">RD${formatCurrency(metaMonto)}</p>
+          </div>
+        </div>
+
+        {/* Donate button */}
+        <button
+          onClick={() => setShowModal(true)}
+          disabled={!portalEnabled}
+          className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl mb-8"
+        >
+          Donar ahora
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+
+        {/* Historia */}
+        <div className="border-t border-gray-100 pt-6 pb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-3">Historia</h2>
+          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+            {causaDescripcion || 'Iglesia Revoluciona es una comunidad de fe comprometida con transformar vidas. Tu donación nos ayuda a seguir construyendo un espacio donde todos puedan encontrar propósito y esperanza.'}
+          </p>
+
+          {/* Plano */}
+          <div className="mt-6 rounded-2xl overflow-hidden bg-white border border-gray-200">
+            <Image
+              src="/plano1.png"
+              alt="Plano de construcción"
+              width={600}
+              height={900}
+              className="w-full h-auto"
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-2 text-center">Plano del proyecto</p>
         </div>
       </div>
 
-      {/* Disabled overlay */}
-      {!portalEnabled && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mx-6 max-w-sm w-full text-center animate-fade-in">
-            {countdown > 0 ? (
-              <>
-                <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white text-4xl font-bold">{countdown}</span>
+      {/* Modal cuentas bancarias */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
+          <div className="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 animate-fade-in">
+            {/* Close */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <Image src="/logo.png" alt="Iglesia Revoluciona" width={40} height={40} className="rounded-full" />
+              <div>
+                <p className="text-lg font-bold text-gray-900">Donar ahora</p>
+                <p className="text-xs text-gray-400">Transferencia bancaria</p>
+              </div>
+            </div>
+
+            {/* Cuenta info */}
+            <div className="bg-gray-50 rounded-2xl p-5 space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">Entidad</p>
+                <p className="text-base font-bold text-gray-900">Iglesia Revoluciona</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">RNC</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-base font-bold text-gray-900 tracking-wide">4-20-35200-3-7</p>
+                  <CopyButton text="4203520037" />
                 </div>
-                <p className="text-lg font-semibold text-gray-900">Deshabilitando portal...</p>
-              </>
-            ) : (
-              <>
-                <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">Banco</p>
+                <p className="text-base font-bold text-gray-900">Banreservas</p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">Cuenta</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-base font-bold text-gray-900 tracking-wide">9606691535</p>
+                  <CopyButton text="9606691535" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Portal no disponible</h2>
-                <p className="text-gray-500 text-sm">El portal de ofrendas se encuentra temporalmente deshabilitado. Intenta más tarde.</p>
-              </>
-            )}
+              </div>
+            </div>
           </div>
         </div>
       )}

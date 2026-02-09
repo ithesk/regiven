@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSettings, updateSettings, validateSession } from '@/lib/store';
+import { getSettings, getTotalStats, updateSettings, validateSession } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/settings - Get portal settings
 export async function GET() {
   try {
-    const settings = await getSettings();
+    const [settings, stats] = await Promise.all([getSettings(), getTotalStats()]);
     return NextResponse.json({
       portalEnabled: settings.portal_enabled,
       causaNombre: settings.causa_nombre || '',
       causaDescripcion: settings.causa_descripcion || '',
+      metaMonto: settings.meta_monto,
+      totalRecaudado: stats.total,
+      totalCount: stats.count,
     });
   } catch (error) {
-    return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '' });
+    return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '', metaMonto: 3000000, totalRecaudado: 0, totalCount: 0 });
   }
 }
 
@@ -41,6 +44,9 @@ export async function PUT(request: NextRequest) {
     if (typeof body.causaDescripcion === 'string') {
       updates.causa_descripcion = body.causaDescripcion;
     }
+    if (typeof body.metaMonto === 'number' && body.metaMonto > 0) {
+      updates.meta_monto = body.metaMonto;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
@@ -55,6 +61,7 @@ export async function PUT(request: NextRequest) {
       portalEnabled: updated.portal_enabled,
       causaNombre: updated.causa_nombre || '',
       causaDescripcion: updated.causa_descripcion || '',
+      metaMonto: updated.meta_monto,
     });
   } catch (error) {
     console.error('Error updating settings:', error);
