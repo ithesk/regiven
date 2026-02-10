@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSettings, getTotalStats, updateSettings, validateSession } from '@/lib/store';
+import { getSettings, getTotalStats, getStatsByFase, updateSettings, validateSession } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/settings - Get portal settings
 export async function GET() {
   try {
-    const [settings, stats] = await Promise.all([getSettings(), getTotalStats()]);
+    const [settings, stats, faseStats] = await Promise.all([getSettings(), getTotalStats(), getStatsByFase()]);
+    const fasesWithStats = (settings.fases || []).map((f, i) => ({
+      ...f,
+      recaudado: faseStats[i]?.total ?? 0,
+      donantes: faseStats[i]?.count ?? 0,
+    }));
     return NextResponse.json({
       portalEnabled: settings.portal_enabled,
       causaNombre: settings.causa_nombre || '',
@@ -14,9 +19,10 @@ export async function GET() {
       metaMonto: settings.meta_monto,
       totalRecaudado: stats.total,
       totalCount: stats.count,
+      fases: fasesWithStats,
     });
   } catch (error) {
-    return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '', metaMonto: 3000000, totalRecaudado: 0, totalCount: 0 });
+    return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '', metaMonto: 3000000, totalRecaudado: 0, totalCount: 0, fases: [] });
   }
 }
 
@@ -47,6 +53,9 @@ export async function PUT(request: NextRequest) {
     if (typeof body.metaMonto === 'number' && body.metaMonto > 0) {
       updates.meta_monto = body.metaMonto;
     }
+    if (Array.isArray(body.fases)) {
+      updates.fases = body.fases;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
@@ -62,6 +71,7 @@ export async function PUT(request: NextRequest) {
       causaNombre: updated.causa_nombre || '',
       causaDescripcion: updated.causa_descripcion || '',
       metaMonto: updated.meta_monto,
+      fases: updated.fases || [],
     });
   } catch (error) {
     console.error('Error updating settings:', error);

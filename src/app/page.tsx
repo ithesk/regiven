@@ -3,6 +3,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
+interface FaseData {
+  nombre: string;
+  meta: number;
+  deadline: string;
+  recaudado: number;
+  donantes: number;
+}
+
+function useCountdown(deadline: Date) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const diff = Math.max(0, deadline.getTime() - now.getTime());
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  const expired = diff === 0;
+
+  return { days, hours, minutes, seconds, expired };
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -40,6 +66,76 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function FaseCard({
+  nombre,
+  meta,
+  recaudado,
+  deadline,
+  formatCurrency,
+}: {
+  nombre: string;
+  meta: number;
+  recaudado: number;
+  deadline: Date;
+  formatCurrency: (n: number) => string;
+}) {
+  const countdown = useCountdown(deadline);
+  const fasePct = meta > 0 ? Math.min(Math.round((recaudado / meta) * 100), 100) : 0;
+  const completed = fasePct >= 100;
+
+  return (
+    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 mb-5">
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-1">
+        <p className="text-base font-bold text-gray-900">{nombre}</p>
+        <p className="text-xs text-gray-400 mt-1">
+          {deadline.toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      </div>
+
+      {/* Amount row */}
+      <div className="flex items-baseline gap-2 mb-4">
+        <p className="text-2xl font-bold text-gray-900">RD${formatCurrency(recaudado)}</p>
+        <p className="text-sm text-gray-400">de RD${formatCurrency(meta)}</p>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-5">
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ease-out ${completed ? 'bg-green-500' : 'bg-gray-900'}`}
+          style={{ width: `${Math.max(fasePct, 1)}%` }}
+        />
+      </div>
+
+      {/* Countdown */}
+      {completed ? (
+        <div className="flex items-center justify-center gap-2 py-2">
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-base font-bold text-green-600">Meta alcanzada</p>
+        </div>
+      ) : countdown.expired ? (
+        <p className="text-base font-bold text-red-500 text-center py-2">Tiempo agotado</p>
+      ) : (
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { value: countdown.days, label: 'Días' },
+            { value: countdown.hours, label: 'Horas' },
+            { value: countdown.minutes, label: 'Min' },
+            { value: countdown.seconds, label: 'Seg' },
+          ].map(({ value, label }) => (
+            <div key={label} className="bg-white rounded-xl py-3 text-center shadow-sm">
+              <p className="text-2xl font-bold text-gray-900">{value}</p>
+              <p className="text-[10px] text-gray-400 font-medium">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -47,8 +143,7 @@ export default function LandingPage() {
   const [causaNombre, setCausaNombre] = useState('');
   const [causaDescripcion, setCausaDescripcion] = useState('');
   const [metaMonto, setMetaMonto] = useState(3000000);
-  const [totalRecaudado, setTotalRecaudado] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
+  const [fases, setFases] = useState<FaseData[]>([]);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -58,8 +153,7 @@ export default function LandingPage() {
         setCausaNombre(data.causaNombre || '');
         setCausaDescripcion(data.causaDescripcion || '');
         setMetaMonto(data.metaMonto ?? 3000000);
-        setTotalRecaudado(data.totalRecaudado ?? 0);
-        setTotalCount(data.totalCount ?? 0);
+        setFases(data.fases || []);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -68,7 +162,10 @@ export default function LandingPage() {
   const formatCurrency = (amount: number) =>
     amount.toLocaleString('es-DO');
 
-  const pct = metaMonto > 0 ? Math.min(Math.round((totalRecaudado / metaMonto) * 100), 100) : 0;
+  const fasesDonantes = fases.reduce((sum, f) => sum + (f.donantes || 0), 0);
+  const fasesRecaudado = fases.reduce((sum, f) => sum + (f.recaudado || 0), 0);
+  const metaTotal = fases.length > 0 ? fases.reduce((sum, f) => sum + (f.meta || 0), 0) : metaMonto;
+  const pct = metaTotal > 0 ? Math.min(Math.round((fasesRecaudado / metaTotal) * 100), 100) : 0;
 
   if (isLoading) {
     return (
@@ -82,69 +179,65 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero image */}
-      <div className="w-full relative overflow-hidden bg-black aspect-[4/3] max-h-[400px]">
-        <Image
-          src="/imare.jpg"
-          alt={causaNombre || 'Iglesia Revoluciona'}
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/imare.jpg"
+        alt={causaNombre || 'Iglesia Revoluciona'}
+        className="w-full object-cover max-h-[400px]"
+      />
 
       {/* Content */}
       <div className="px-5 py-6 max-w-lg mx-auto">
         {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">
           {causaNombre || 'Iglesia Revoluciona'}
         </h1>
 
         {/* Organizer */}
-        <div className="flex items-center gap-3 mb-6">
-          <Image
-            src="/logo.png"
-            alt="Iglesia Revoluciona"
-            width={36}
-            height={36}
-            className="rounded-full"
-          />
+        <div className="flex items-center gap-2.5 mb-6">
+          <Image src="/logo.png" alt="Iglesia Revoluciona" width={32} height={32} className="rounded-full" />
           <div>
-            <p className="text-xs text-gray-400">Organizado por</p>
-            <p className="text-sm font-semibold text-gray-900">Iglesia Revoluciona</p>
+            <p className="text-[11px] text-gray-400 leading-tight">Organizado por</p>
+            <p className="text-sm font-semibold text-gray-900 leading-tight">Iglesia Revoluciona</p>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="mb-2">
-          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gray-900 rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${pct}%` }}
+        {/* Fases */}
+        {fases.map((fase, i) => {
+          const dl = fase.deadline.includes('+') || fase.deadline.includes('Z')
+            ? fase.deadline
+            : fase.deadline + ':00-04:00';
+          return (
+            <FaseCard
+              key={i}
+              nombre={fase.nombre || `Fase ${i + 1}`}
+              meta={fase.meta}
+              recaudado={fase.recaudado}
+              deadline={new Date(dl)}
+              formatCurrency={formatCurrency}
             />
-          </div>
-        </div>
+          );
+        })}
 
-        {/* Raised / Meta */}
-        <div className="flex items-baseline justify-between mb-6">
-          <p className="text-base">
-            <span className="font-bold text-gray-900">RD${formatCurrency(totalRecaudado)}</span>{' '}
-            <span className="text-gray-400 text-sm">recaudado de RD${formatCurrency(metaMonto)}</span>
-          </p>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-gray-50 rounded-2xl py-4 text-center">
-            <p className="text-xl font-bold text-gray-900">{totalCount}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Donantes</p>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+            <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-bold">{fasesDonantes}</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Donantes</p>
+              <p className="text-[11px] text-gray-400">{fasesDonantes === 0 ? 'Sin donaciones aún' : `${fasesDonantes} persona${fasesDonantes !== 1 ? 's' : ''}`}</p>
+            </div>
           </div>
-          <div className="bg-gray-50 rounded-2xl py-4 text-center">
-            <p className="text-xl font-bold text-gray-900">{pct}%</p>
-            <p className="text-xs text-gray-400 mt-0.5">Completado</p>
-          </div>
-          <div className="bg-gray-50 rounded-2xl py-4 text-center">
-            <p className="text-xl font-bold text-gray-900">Meta</p>
-            <p className="text-xs text-gray-400 mt-0.5">RD${formatCurrency(metaMonto)}</p>
+          <div className="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+            <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-sm font-bold">{pct}%</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Completado</p>
+              <p className="text-[11px] text-gray-400">{pct === 0 ? 'Comenzando' : pct < 50 ? 'En progreso' : pct < 100 ? 'Casi listo' : 'Logrado'}</p>
+            </div>
           </div>
         </div>
 
@@ -167,15 +260,8 @@ export default function LandingPage() {
             {causaDescripcion || 'Iglesia Revoluciona es una comunidad de fe comprometida con transformar vidas. Tu donación nos ayuda a seguir construyendo un espacio donde todos puedan encontrar propósito y esperanza.'}
           </p>
 
-          {/* Plano */}
           <div className="mt-6 rounded-2xl overflow-hidden bg-white border border-gray-200">
-            <Image
-              src="/plano1.png"
-              alt="Plano de construcción"
-              width={600}
-              height={900}
-              className="w-full h-auto"
-            />
+            <Image src="/plano1.png" alt="Plano de construcción" width={600} height={900} className="w-full h-auto" />
           </div>
           <p className="text-xs text-gray-400 mt-2 text-center">Plano del proyecto</p>
         </div>
@@ -186,7 +272,6 @@ export default function LandingPage() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
           <div className="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 animate-fade-in">
-            {/* Close */}
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
@@ -196,7 +281,6 @@ export default function LandingPage() {
               </svg>
             </button>
 
-            {/* Header */}
             <div className="flex items-center gap-3 mb-6">
               <Image src="/logo.png" alt="Iglesia Revoluciona" width={40} height={40} className="rounded-full" />
               <div>
@@ -205,7 +289,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Cuenta info */}
             <div className="bg-gray-50 rounded-2xl p-5 space-y-4">
               <div>
                 <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">Entidad</p>

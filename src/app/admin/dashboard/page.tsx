@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 interface Donation {
   id: string;
   amount: number;
+  donorName: string;
+  via: string;
+  comment: string;
+  fase: number | null;
   createdAt: string;
 }
 
@@ -14,6 +18,12 @@ interface Stats {
   totalAmount: number;
   todayCount: number;
   todayAmount: number;
+}
+
+interface Fase {
+  nombre: string;
+  meta: string;
+  deadline: string;
 }
 
 type FilterPreset = 'all' | 'today' | 'week' | 'month' | 'custom';
@@ -30,12 +40,27 @@ export default function AdminDashboard() {
   const [portalEnabled, setPortalEnabled] = useState(true);
   const [causaNombre, setCausaNombre] = useState('');
   const [causaDescripcion, setCausaDescripcion] = useState('');
+  const [metaMonto, setMetaMonto] = useState('3000000');
+  const [fases, setFases] = useState<Fase[]>([]);
   const [isSavingCausa, setIsSavingCausa] = useState(false);
   const [causaSaved, setCausaSaved] = useState(false);
   const [causaOpen, setCausaOpen] = useState(false);
+  const [fasesOpen, setFasesOpen] = useState(false);
+  const [isSavingFases, setIsSavingFases] = useState(false);
+  const [fasesSaved, setFasesSaved] = useState(false);
   const isEditingCausa = useRef(false);
+  const isEditingFases = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isTogglingPortal, setIsTogglingPortal] = useState(false);
+
+  // New donation form
+  const [newDonOpen, setNewDonOpen] = useState(false);
+  const [newDonName, setNewDonName] = useState('');
+  const [newDonAmount, setNewDonAmount] = useState('');
+  const [newDonVia, setNewDonVia] = useState('');
+  const [newDonComment, setNewDonComment] = useState('');
+  const [newDonFase, setNewDonFase] = useState('');
+  const [isCreatingDon, setIsCreatingDon] = useState(false);
 
   // Filters
   const [filterPreset, setFilterPreset] = useState<FilterPreset>('all');
@@ -69,6 +94,15 @@ export default function AdminDashboard() {
         if (!isEditingCausa.current) {
           setCausaNombre(settingsData.causaNombre || '');
           setCausaDescripcion(settingsData.causaDescripcion || '');
+          setMetaMonto(String(settingsData.metaMonto ?? 3000000));
+        }
+        if (!isEditingFases.current) {
+          const f = (settingsData.fases || []).map((fase: any) => ({
+            nombre: fase.nombre || '',
+            meta: String(fase.meta || 0),
+            deadline: fase.deadline || '',
+          }));
+          setFases(f);
         }
       }
 
@@ -111,7 +145,7 @@ export default function AdminDashboard() {
       const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ causaNombre, causaDescripcion }),
+        body: JSON.stringify({ causaNombre, causaDescripcion, metaMonto: Number(metaMonto) || 3000000 }),
       });
       if (response.ok) {
         setCausaSaved(true);
@@ -121,6 +155,86 @@ export default function AdminDashboard() {
       console.error('Error saving causa:', error);
     } finally {
       setIsSavingCausa(false);
+    }
+  };
+
+  const handleSaveFases = async () => {
+    setIsSavingFases(true);
+    setFasesSaved(false);
+    try {
+      const payload = fases.map((f) => ({
+        nombre: f.nombre,
+        meta: Number(f.meta) || 0,
+        deadline: f.deadline,
+      }));
+      // Also recalculate total meta from phases
+      const totalMeta = payload.reduce((sum, f) => sum + f.meta, 0);
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fases: payload, metaMonto: totalMeta || Number(metaMonto) || 3000000 }),
+      });
+      if (response.ok) {
+        setFasesSaved(true);
+        setMetaMonto(String(totalMeta || metaMonto));
+        isEditingFases.current = false;
+      }
+    } catch (error) {
+      console.error('Error saving fases:', error);
+    } finally {
+      setIsSavingFases(false);
+    }
+  };
+
+  const addFase = () => {
+    setFases([...fases, { nombre: `Fase ${fases.length + 1}`, meta: '', deadline: '' }]);
+    isEditingFases.current = true;
+    setFasesSaved(false);
+  };
+
+  const removeFase = (index: number) => {
+    setFases(fases.filter((_, i) => i !== index));
+    isEditingFases.current = true;
+    setFasesSaved(false);
+  };
+
+  const updateFase = (index: number, field: keyof Fase, value: string) => {
+    const updated = [...fases];
+    updated[index] = { ...updated[index], [field]: value };
+    setFases(updated);
+    isEditingFases.current = true;
+    setFasesSaved(false);
+  };
+
+  const handleCreateDonation = async () => {
+    const amount = Number(newDonAmount);
+    if (!amount || amount <= 0) return;
+    setIsCreatingDon(true);
+    try {
+      const faseVal = newDonFase !== '' ? Number(newDonFase) : null;
+      const response = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          donorName: newDonName,
+          via: newDonVia,
+          comment: newDonComment,
+          fase: faseVal,
+        }),
+      });
+      if (response.ok) {
+        setNewDonName('');
+        setNewDonAmount('');
+        setNewDonVia('');
+        setNewDonComment('');
+        setNewDonOpen(false);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error creating donation:', error);
+    } finally {
+      setIsCreatingDon(false);
     }
   };
 
@@ -343,6 +457,17 @@ export default function AdminDashboard() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black resize-none"
                 />
               </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Meta de recaudación (RD$)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={metaMonto}
+                  onChange={(e) => { setMetaMonto(e.target.value.replace(/[^0-9]/g, '')); setCausaSaved(false); isEditingCausa.current = true; }}
+                  placeholder="3000000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSaveCausa}
@@ -353,6 +478,99 @@ export default function AdminDashboard() {
                 </button>
                 {causaSaved && (
                   <span className="text-sm text-green-600 font-medium">Guardado</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Fases / Metas (collapsible) */}
+        <div className="bg-white rounded-xl shadow-sm mb-5">
+          <button
+            onClick={() => setFasesOpen(!fasesOpen)}
+            className="w-full flex items-center justify-between p-5"
+          >
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-semibold text-black">Fases / Metas</h2>
+              {!fasesOpen && (
+                <span className="text-xs text-gray-400">{fases.length} fase{fases.length !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${fasesOpen ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {fasesOpen && (
+            <div className="px-5 pb-5 space-y-4">
+              {fases.map((fase, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-3 relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-bold text-black">Fase {i + 1}</p>
+                    <button
+                      onClick={() => removeFase(i)}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                    <input
+                      type="text"
+                      value={fase.nombre}
+                      onChange={(e) => updateFase(i, 'nombre', e.target.value)}
+                      placeholder="Ej: Fase 1 - Estructura"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Meta (RD$)</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={fase.meta}
+                        onChange={(e) => updateFase(i, 'meta', e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="1500000"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Fecha límite</label>
+                      <input
+                        type="datetime-local"
+                        value={fase.deadline}
+                        onChange={(e) => updateFase(i, 'deadline', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={addFase}
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-500 hover:border-gray-400 hover:text-gray-700"
+              >
+                + Agregar fase
+              </button>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSaveFases}
+                  disabled={isSavingFases}
+                  className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {isSavingFases ? 'Guardando...' : 'Guardar fases'}
+                </button>
+                {fasesSaved && (
+                  <span className="text-sm text-green-600 font-medium">Guardado</span>
+                )}
+                {fases.length > 0 && (
+                  <span className="text-xs text-gray-400 ml-auto">
+                    Meta total: RD${formatCurrency(fases.reduce((s, f) => s + (Number(f.meta) || 0), 0))}
+                  </span>
                 )}
               </div>
             </div>
@@ -504,6 +722,95 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Add Donation (collapsible) */}
+        <div className="bg-white rounded-xl shadow-sm mb-5">
+          <button
+            onClick={() => setNewDonOpen(!newDonOpen)}
+            className="w-full flex items-center justify-between p-5"
+          >
+            <h2 className="text-base font-semibold text-black">+ Agregar Donación</h2>
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${newDonOpen ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {newDonOpen && (
+            <div className="px-5 pb-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Nombre del donante</label>
+                  <input
+                    type="text"
+                    value={newDonName}
+                    onChange={(e) => setNewDonName(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Monto (RD$)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={newDonAmount}
+                    onChange={(e) => setNewDonAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="1000"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Vía</label>
+                <select
+                  value={newDonVia}
+                  onChange={(e) => setNewDonVia(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Comentario</label>
+                  <input
+                    type="text"
+                    value={newDonComment}
+                    onChange={(e) => setNewDonComment(e.target.value)}
+                    placeholder="Opcional"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Fase</label>
+                  <select
+                    value={newDonFase}
+                    onChange={(e) => setNewDonFase(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                  >
+                    <option value="">Sin fase</option>
+                    {fases.map((f, i) => (
+                      <option key={i} value={i}>{f.nombre || `Fase ${i + 1}`}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <button
+                onClick={handleCreateDonation}
+                disabled={isCreatingDon || !newDonAmount}
+                className="px-5 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
+              >
+                {isCreatingDon ? 'Guardando...' : 'Registrar donación'}
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Donations Table */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-200">
@@ -530,27 +837,39 @@ export default function AdminDashboard() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Monto
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Fecha
-                    </th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Hora
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Donante</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vía</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comentario</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fase</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hora</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredDonations.map((donation) => (
                     <tr key={donation.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 whitespace-nowrap text-sm font-semibold text-black">
+                      <td className="px-4 py-3 text-sm text-black">
+                        {donation.donorName || <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-black">
                         RD${formatCurrency(donation.amount)}
                       </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {donation.via || <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">
+                        {donation.comment || <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {donation.fase !== null && donation.fase !== undefined
+                          ? (fases[donation.fase]?.nombre || `Fase ${donation.fase + 1}`)
+                          : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                         {formatDate(donation.createdAt)}
                       </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                         {formatTime(donation.createdAt)}
                       </td>
                     </tr>

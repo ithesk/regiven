@@ -73,6 +73,11 @@ input[type="password"] {
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
+/* Progress ring animation */
+.progress-ring-circle {
+  transition: stroke-dashoffset 1.5s ease-out;
+}
+
 /* Prevent zoom on input focus on iOS */
 @media screen and (max-width: 768px) {
   input,

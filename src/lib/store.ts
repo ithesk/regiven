@@ -3,7 +3,17 @@ import { supabase } from './supabase';
 export interface Donation {
   id: string;
   amount: number;
+  donor_name: string;
+  via: string;
+  comment: string;
+  fase: number | null; // index of the phase (0-based), null = no phase
   created_at: string;
+}
+
+export interface Fase {
+  nombre: string;
+  meta: number;
+  deadline: string; // ISO date string
 }
 
 export interface Settings {
@@ -11,14 +21,27 @@ export interface Settings {
   causa_nombre: string;
   causa_descripcion: string;
   meta_monto: number;
+  fases: Fase[];
 }
 
 // --- Donations ---
 
-export async function createDonation(amount: number): Promise<Donation> {
+export async function createDonation(fields: {
+  amount: number;
+  donor_name?: string;
+  via?: string;
+  comment?: string;
+  fase?: number | null;
+}): Promise<Donation> {
   const { data, error } = await supabase
     .from('donations')
-    .insert({ amount })
+    .insert({
+      amount: fields.amount,
+      donor_name: fields.donor_name || '',
+      via: fields.via || '',
+      comment: fields.comment || '',
+      fase: fields.fase ?? null,
+    })
     .select()
     .single();
 
@@ -65,6 +88,23 @@ export async function getTodayDonations(): Promise<{ count: number; total: numbe
   };
 }
 
+export async function getStatsByFase(): Promise<Record<number, { count: number; total: number }>> {
+  const { data, error } = await supabase
+    .from('donations')
+    .select('amount, fase')
+    .not('fase', 'is', null);
+
+  if (error) throw error;
+  const result: Record<number, { count: number; total: number }> = {};
+  for (const d of data || []) {
+    const f = d.fase as number;
+    if (!result[f]) result[f] = { count: 0, total: 0 };
+    result[f].count++;
+    result[f].total += d.amount;
+  }
+  return result;
+}
+
 // --- Settings ---
 
 export async function getSettings(): Promise<Settings> {
@@ -74,12 +114,13 @@ export async function getSettings(): Promise<Settings> {
     .eq('id', 1)
     .single();
 
-  if (error) return { portal_enabled: true, causa_nombre: '', causa_descripcion: '', meta_monto: 3000000 };
+  if (error) return { portal_enabled: true, causa_nombre: '', causa_descripcion: '', meta_monto: 3000000, fases: [] };
   return {
     portal_enabled: data.portal_enabled,
     causa_nombre: data.causa_nombre ?? '',
     causa_descripcion: data.causa_descripcion ?? '',
     meta_monto: data.meta_monto ?? 3000000,
+    fases: data.fases ?? [],
   };
 }
 

@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { amount } = body;
+    const { amount, donorName, via, comment, fase } = body;
 
     if (!amount || typeof amount !== 'number' || amount <= 0) {
       return NextResponse.json(
@@ -22,13 +22,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const donation = await createDonation(amount);
+    const donation = await createDonation({
+      amount,
+      donor_name: typeof donorName === 'string' ? donorName : '',
+      via: typeof via === 'string' ? via : '',
+      comment: typeof comment === 'string' ? comment : '',
+      fase: typeof fase === 'number' ? fase : null,
+    });
 
     return NextResponse.json({
       success: true,
       donation: {
         ...donation,
         createdAt: donation.created_at,
+        donorName: donation.donor_name,
       },
     });
   } catch (error) {
@@ -61,7 +68,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       donations: donations.map(d => ({
-        ...d,
+        id: d.id,
+        amount: d.amount,
+        donorName: d.donor_name || '',
+        via: d.via || '',
+        comment: d.comment || '',
+        fase: d.fase,
         createdAt: d.created_at,
       })),
       stats: {
