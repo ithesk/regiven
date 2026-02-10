@@ -255,11 +255,71 @@ export default function LandingPage() {
 
         {/* Historia */}
         <div className="border-t border-gray-100 pt-6 pb-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-3">Historia</h2>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-            {causaDescripcion || 'Iglesia Revoluciona es una comunidad de fe comprometida con transformar vidas. Tu donación nos ayuda a seguir construyendo un espacio donde todos puedan encontrar propósito y esperanza.'}
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Nuestra Historia</h2>
+          <p className="text-sm text-gray-400 mb-4">Un camino de fe y transformación</p>
+
+          {/* Render 3D */}
+          <div className="rounded-2xl overflow-hidden bg-gray-100 mb-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/rede3d.jpg" alt="Render 3D del nuevo local" className="w-full h-auto" />
+          </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            Iglesia Revoluciona nació en 2023 con el propósito de llevar el amor de Dios de forma genuina y transformadora a nuestra ciudad. Hoy somos una comunidad viva que recibe cada domingo a casi 300 personas y más de 70 niños, viendo vidas restauradas, familias fortalecidas y jóvenes encontrando propósito.
           </p>
 
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {[
+              { value: '300+', label: 'Personas' },
+              { value: '70+', label: 'Niños' },
+              { value: '2023', label: 'Fundación' },
+            ].map(({ value, label }) => (
+              <div key={label} className="bg-gray-50 border border-gray-100 rounded-2xl py-4 text-center">
+                <p className="text-2xl font-bold text-gray-900">{value}</p>
+                <p className="text-xs text-gray-400">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            Nuestro crecimiento ha sido tan grande que actualmente ya no contamos con espacio suficiente para recibir a más personas. Por esta razón, se abrió la oportunidad de mudarnos a un nuevo local en la Av. 27 de Febrero, con capacidad para más de 500 personas, lo que nos permitirá ampliar nuestro impacto espiritual, social y comunitario.
+          </p>
+
+          {/* Nueva ubicación */}
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Nueva Ubicación</p>
+              <p className="text-xs text-gray-400">Av. 27 de Febrero · Capacidad 500+ personas</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            Para asegurar este espacio, necesitamos reunir US$48,000, correspondientes a un año de renta adelantada, requisito para obtener un precio preferencial.
+          </p>
+
+          {/* Meta USD */}
+          <div className="bg-gray-900 rounded-2xl p-5 text-center mb-6">
+            <p className="text-sm text-gray-400 mb-1">US$</p>
+            <p className="text-4xl font-bold text-white">48,000</p>
+            <p className="text-sm text-gray-400 mt-1">Meta para asegurar nuestro nuevo hogar</p>
+          </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed mb-4">
+            Tu aporte es una inversión directa en la transformación de vidas, el fortalecimiento de familias y el bienestar de nuestra comunidad. Cada donación cuenta y nos acerca un paso más a este nuevo hogar.
+          </p>
+
+          <p className="text-sm font-bold text-gray-900">
+            Gracias por sembrar esperanza y ser parte de lo que Dios está haciendo a través de Iglesia Revoluciona.
+          </p>
+
+          {/* Plano */}
           <div className="mt-6 rounded-2xl overflow-hidden bg-white border border-gray-200">
             <Image src="/plano1.png" alt="Plano de construcción" width={600} height={900} className="w-full h-auto" />
           </div>
