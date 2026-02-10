@@ -285,20 +285,20 @@ export default function LandingPage() {
               <Image src="/logo.png" alt="Iglesia Revoluciona" width={40} height={40} className="rounded-full" />
               <div>
                 <p className="text-lg font-bold text-gray-900">Donar ahora</p>
-                <p className="text-xs text-gray-400">Transferencia bancaria</p>
+                <p className="text-xs text-gray-400">Elige tu método de pago</p>
               </div>
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-5 space-y-4">
               <div>
                 <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">Entidad</p>
-                <p className="text-base font-bold text-gray-900">Iglesia Revoluciona</p>
+                <p className="text-base font-bold text-gray-900">Iglesia Revolucionaria</p>
               </div>
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-1">RNC</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-base font-bold text-gray-900 tracking-wide">4-20-35200-3-7</p>
-                  <CopyButton text="4203520037" />
+                  <p className="text-base font-bold text-gray-900 tracking-wide">4-30-38250-7</p>
+                  <CopyButton text="430382507" />
                 </div>
               </div>
               <div className="border-t border-gray-200 pt-4">
@@ -312,6 +312,20 @@ export default function LandingPage() {
                   <CopyButton text="9606691535" />
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <a
+                href="https://www.paypal.me/REVOLUCIONAIGLESIA"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-3 bg-[#0070ba] text-white py-3.5 rounded-2xl text-base font-bold hover:bg-[#005ea6] active:bg-[#004d8c] transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.648h6.012c1.988 0 3.39.462 4.166 1.374.727.855.96 2.022.69 3.466l-.018.095v.838l.652.33c.552.272.99.593 1.312.964.392.453.644.998.75 1.62.11.644.074 1.39-.103 2.22-.204.953-.533 1.783-.978 2.467a5.1 5.1 0 0 1-1.493 1.56 5.71 5.71 0 0 1-1.869.85c-.676.178-1.438.268-2.264.268h-.538a1.62 1.62 0 0 0-1.6 1.37l-.04.218-.68 4.315-.032.156a.178.178 0 0 1-.05.105.163.163 0 0 1-.106.04H7.076z"/>
+                </svg>
+                Donar con PayPal
+              </a>
             </div>
           </div>
         </div>
