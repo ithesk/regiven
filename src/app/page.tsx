@@ -374,7 +374,7 @@ export default function LandingPage() {
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-gray-900 text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-black transition-colors shrink-0"
+              className="bg-gray-900 text-white text-base font-bold px-8 py-4 rounded-full hover:bg-black transition-colors shrink-0"
             >
               Donar
             </button>
