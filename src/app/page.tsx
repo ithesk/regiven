@@ -144,7 +144,6 @@ export default function LandingPage() {
   const [causaDescripcion, setCausaDescripcion] = useState('');
   const [metaMonto, setMetaMonto] = useState(3000000);
   const [fases, setFases] = useState<FaseData[]>([]);
-  const [minDonation, setMinDonation] = useState<{ amount: number; donor_name: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -155,7 +154,6 @@ export default function LandingPage() {
         setCausaDescripcion(data.causaDescripcion || '');
         setMetaMonto(data.metaMonto ?? 3000000);
         setFases(data.fases || []);
-        setMinDonation(data.minDonation || null);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -367,26 +365,21 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Donación más pequeña + Donar */}
-        {minDonation && (
-          <div className="border-t border-gray-100 pt-6 pb-8">
-            <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4">
-              <div className="flex-1">
-                <p className="text-xs text-gray-400 mb-1">Primera donación</p>
-                <p className="text-xl font-bold text-gray-900">RD${formatCurrency(minDonation.amount)}</p>
-                {minDonation.donor_name && (
-                  <p className="text-xs text-gray-400 mt-0.5">por {minDonation.donor_name}</p>
-                )}
-              </div>
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-gray-900 text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-black transition-colors shrink-0"
-              >
-                Donar
-              </button>
+        {/* Recaudado + Donar */}
+        <div className="border-t border-gray-100 pt-6 pb-8">
+          <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+            <div className="flex-1">
+              <p className="text-xs text-gray-400 mb-1">Recaudado</p>
+              <p className="text-xl font-bold text-gray-900">RD${formatCurrency(fasesRecaudado)}</p>
             </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-gray-900 text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-black transition-colors shrink-0"
+            >
+              Donar
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal cuentas bancarias */}
