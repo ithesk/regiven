@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSettings, getTotalStats, getStatsByFase, updateSettings, validateSession } from '@/lib/store';
+import { getSettings, getTotalStats, getStatsByFase, getMinDonation, updateSettings, validateSession } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/settings - Get portal settings
 export async function GET() {
   try {
-    const [settings, stats, faseStats] = await Promise.all([getSettings(), getTotalStats(), getStatsByFase()]);
+    const [settings, stats, faseStats, minDonation] = await Promise.all([getSettings(), getTotalStats(), getStatsByFase(), getMinDonation()]);
     const fasesWithStats = (settings.fases || []).map((f, i) => ({
       ...f,
       recaudado: faseStats[i]?.total ?? 0,
@@ -20,6 +20,7 @@ export async function GET() {
       totalRecaudado: stats.total,
       totalCount: stats.count,
       fases: fasesWithStats,
+      minDonation,
     });
   } catch (error) {
     return NextResponse.json({ portalEnabled: true, causaNombre: '', causaDescripcion: '', metaMonto: 3000000, totalRecaudado: 0, totalCount: 0, fases: [] });

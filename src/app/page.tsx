@@ -144,6 +144,7 @@ export default function LandingPage() {
   const [causaDescripcion, setCausaDescripcion] = useState('');
   const [metaMonto, setMetaMonto] = useState(3000000);
   const [fases, setFases] = useState<FaseData[]>([]);
+  const [minDonation, setMinDonation] = useState<{ amount: number; donor_name: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -154,6 +155,7 @@ export default function LandingPage() {
         setCausaDescripcion(data.causaDescripcion || '');
         setMetaMonto(data.metaMonto ?? 3000000);
         setFases(data.fases || []);
+        setMinDonation(data.minDonation || null);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -245,12 +247,29 @@ export default function LandingPage() {
         <button
           onClick={() => setShowModal(true)}
           disabled={!portalEnabled}
-          className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl mb-8"
+          className="w-full bg-gray-900 text-white py-4 rounded-full text-lg font-bold hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl mb-3"
         >
           Donar ahora
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
+        </button>
+
+        {/* Share button */}
+        <button
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({ title: causaNombre || 'Iglesia Revoluciona', text: 'Ayúdanos a alcanzar nuestra meta. Cada donación cuenta!', url: window.location.href });
+            } else {
+              navigator.clipboard?.writeText(window.location.href);
+            }
+          }}
+          className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-full text-base font-semibold hover:bg-gray-50 flex items-center justify-center gap-2 mb-8"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          Compartir
         </button>
 
         {/* Historia */}
@@ -325,6 +344,49 @@ export default function LandingPage() {
           </div>
           <p className="text-xs text-gray-400 mt-2 text-center">Plano del proyecto</p>
         </div>
+
+        {/* Organizador */}
+        <div className="border-t border-gray-100 pt-6 pb-6">
+          <h3 className="text-xs font-semibold text-gray-400 tracking-[0.15em] uppercase mb-4">Organizador</h3>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-white text-lg font-bold">JO</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-bold text-gray-900">Pastor Josué Ovalles</p>
+              <p className="text-xs text-gray-400">Iglesia Revoluciona</p>
+            </div>
+            <a
+              href="https://wa.me/18091234567"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 rounded-full hover:bg-black transition-colors"
+            >
+              Contactar
+            </a>
+          </div>
+        </div>
+
+        {/* Donación más pequeña + Donar */}
+        {minDonation && (
+          <div className="border-t border-gray-100 pt-6 pb-8">
+            <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4">
+              <div className="flex-1">
+                <p className="text-xs text-gray-400 mb-1">Primera donación</p>
+                <p className="text-xl font-bold text-gray-900">RD${formatCurrency(minDonation.amount)}</p>
+                {minDonation.donor_name && (
+                  <p className="text-xs text-gray-400 mt-0.5">por {minDonation.donor_name}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-gray-900 text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-black transition-colors shrink-0"
+              >
+                Donar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal cuentas bancarias */}

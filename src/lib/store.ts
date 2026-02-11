@@ -105,6 +105,19 @@ export async function getStatsByFase(): Promise<Record<number, { count: number; 
   return result;
 }
 
+export async function getMinDonation(): Promise<{ amount: number; donor_name: string } | null> {
+  const { data, error } = await supabase
+    .from('donations')
+    .select('amount, donor_name')
+    .not('fase', 'is', null)
+    .order('amount', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return { amount: data.amount, donor_name: data.donor_name || '' };
+}
+
 // --- Settings ---
 
 export async function getSettings(): Promise<Settings> {
