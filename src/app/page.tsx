@@ -365,20 +365,23 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Recaudado + Donar */}
-        <div className="border-t border-gray-100 pt-6 pb-8">
-          <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 rounded-2xl p-4">
-            <div className="flex-1">
-              <p className="text-xs text-gray-400 mb-1">Recaudado</p>
-              <p className="text-xl font-bold text-gray-900">RD${formatCurrency(fasesRecaudado)}</p>
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-gray-900 text-white text-base font-bold px-8 py-4 rounded-full hover:bg-black transition-colors shrink-0"
-            >
-              Donar
-            </button>
+        {/* Spacer for fixed bottom bar */}
+        <div className="h-24" />
+      </div>
+
+      {/* Fixed bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 px-5 py-3 safe-bottom">
+        <div className="max-w-lg mx-auto flex items-center gap-4">
+          <div className="flex-1">
+            <p className="text-[11px] text-gray-400">Recaudado</p>
+            <p className="text-lg font-bold text-gray-900">RD${formatCurrency(fasesRecaudado)}</p>
           </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-gray-900 text-white text-base font-bold px-8 py-3.5 rounded-full hover:bg-black transition-colors shrink-0"
+          >
+            Donar
+          </button>
         </div>
       </div>
 
