@@ -355,7 +355,7 @@ export default function LandingPage() {
               <p className="text-xs text-gray-400">Iglesia Revoluciona</p>
             </div>
             <a
-              href="https://wa.me/18091234567"
+              href="https://wa.me/18492545249"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 rounded-full hover:bg-black transition-colors"
